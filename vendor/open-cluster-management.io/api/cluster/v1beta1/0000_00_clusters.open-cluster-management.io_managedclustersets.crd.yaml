@@ -115,8 +115,16 @@ spec:
                   description: Selector represents a selector of ManagedClusters by labels and names.
                   type: object
                   properties:
+                    clusterLabel:
+                      description: 'ClusterLabel defines one label which clusterset could use to select target managedClusters. In this way, we will: 1. Guarantee clustersets with same label key are exclusive 2. Enable additional permission check when cluster joining/leaving a clusterset (the label key should start with the reserved prefix "cluster.open-cluster-management.io/" and "info.open-cluster-management.io/");'
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        value:
+                          type: string
                     labelSelector:
-                      description: A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.
+                      description: LabelSelector define the general labelSelector which clusterset will use to select target managedClusters
                       type: object
                       properties:
                         matchExpressions:
@@ -146,7 +154,7 @@ spec:
                           additionalProperties:
                             type: string
                     selectorType:
-                      description: '"" means to use the current mechanism of matching label <cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>. "LabelSelector" means to use the LabelSelector to select target managedClusters "ClusterNames" means to use "ClusterNames" where the managedClusters Name is set'
+                      description: '"" means to use the current mechanism of matching label <cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>. "LabelSelector" means to use the LabelSelector to select target managedClusters "ClusterLabel" means to use a particular cluster label. It is guaranteed that clustersets with same label key are exclusive with each others'
                       type: string
             status:
               description: Status represents the current status of the ManagedClusterSet

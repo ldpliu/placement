@@ -284,6 +284,8 @@ func TestGetAvailableClusters(t *testing.T) {
 			name:            "select clusters from clustersets",
 			clusterSetNames: []string{"clusterset1", "clusterset2"},
 			initObjs: []runtime.Object{
+				testinghelpers.NewClusterSet("clusterset1"),
+				testinghelpers.NewClusterSet("clusterset2"),
 				testinghelpers.NewManagedCluster("cluster1").WithLabel(clusterSetLabel, "clusterset1").Build(),
 				testinghelpers.NewManagedCluster("cluster2").WithLabel(clusterSetLabel, "clusterset2").Build(),
 			},
@@ -297,13 +299,11 @@ func TestGetAvailableClusters(t *testing.T) {
 			clusterInformerFactory := testinghelpers.NewClusterInformerFactory(clusterClient, c.initObjs...)
 
 			ctrl := &schedulingController{
-				clusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+				clusterLister:    clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+				clusterSetLister: clusterInformerFactory.Cluster().V1beta1().ManagedClusterSets().Lister(),
 			}
 
-			clusters, err := ctrl.getAvailableClusters(c.clusterSetNames)
-			if err != nil {
-				t.Errorf("unexpected err: %v", err)
-			}
+			clusters := ctrl.getAvailableClusters(c.clusterSetNames)
 
 			expectedClusterNames := sets.NewString(c.expectedClusterNames...)
 			if len(clusters) != expectedClusterNames.Len() {

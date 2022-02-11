@@ -30,6 +30,7 @@ import (
 	clusterlisterv1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	clusterlisterv1beta1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
 	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
+	v1 "open-cluster-management.io/api/cluster/v1"
 	clusterapiv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
@@ -272,10 +273,7 @@ func (c *schedulingController) syncPlacement(ctx context.Context, placement *clu
 	clusterSetNames := c.getEligibleClusterSets(placement, bindings)
 
 	// get available clusters for the placement
-	clusters, err := c.getAvailableClusters(clusterSetNames)
-	if err != nil {
-		return err
-	}
+	clusters := c.getAvailableClusters(clusterSetNames)
 
 	// schedule placement with scheduler
 	scheduleResult, err := c.scheduler.Schedule(ctx, placement, clusters)
@@ -339,17 +337,42 @@ func (c *schedulingController) getEligibleClusterSets(placement *clusterapiv1bet
 // getAvailableClusters returns available clusters for the given placement. The clusters must
 // 1) Be from clustersets bound to the placement namespace;
 // 2) Belong to one of particular clustersets if .spec.clusterSets is specified;
-func (c *schedulingController) getAvailableClusters(clusterSetNames []string) ([]*clusterapiv1.ManagedCluster, error) {
+func (c *schedulingController) getAvailableClusters(clusterSetNames []string) []*clusterapiv1.ManagedCluster {
 	if len(clusterSetNames) == 0 {
-		return nil, nil
+		return nil
 	}
-	// list clusters from those clustersets
-	requirement, err := labels.NewRequirement(clusterSetLabel, selection.In, clusterSetNames)
-	if err != nil {
-		return nil, err
+	var targetClusters []*clusterapiv1.ManagedCluster
+	for _, clusterSetName := range clusterSetNames {
+		curClusterSet, err := c.clusterSetLister.Get(clusterSetName)
+		if err != nil {
+			klog.Errorf("Their is no clusterset:%v", clusterSetName)
+			break
+		}
+		curClusters, err := getClustersInClusterSet(c.clusterLister, curClusterSet)
+		if err != nil {
+			klog.Errorf("Failed to get clusters in clusterset:%v", clusterSetName)
+			break
+		}
+		targetClusters = mergeClusters(targetClusters, curClusters)
 	}
-	labelSelector := labels.NewSelector().Add(*requirement)
-	return c.clusterLister.List(labelSelector)
+	return targetClusters
+}
+
+func mergeClusters(clusters1, clusters2 []*v1.ManagedCluster) []*v1.ManagedCluster {
+	var c1Map = make(map[string]*v1.ManagedCluster)
+	var mergedClusters []*v1.ManagedCluster
+	for _, c1 := range clusters1 {
+		mergedClusters = append(mergedClusters, c1)
+		c1Map[c1.Name] = c1
+	}
+
+	for _, c2 := range clusters2 {
+		if _, ok := c1Map[c2.Name]; ok {
+			break
+		}
+		mergedClusters = append(mergedClusters, c2)
+	}
+	return mergedClusters
 }
 
 // updateStatus updates the status of the placement according to intermediate scheduling data.
@@ -581,4 +604,30 @@ func (c *schedulingController) createOrUpdatePlacementDecision(
 		scoreStr)
 
 	return nil
+}
+
+func getClustersInClusterSet(clusterLister clusterlisterv1.ManagedClusterLister, clusterSet *clusterapiv1beta1.ManagedClusterSet) ([]*v1.ManagedCluster, error) {
+	var selector labels.Selector
+	var clusters []*v1.ManagedCluster
+	klog.Error("#####set:%v", clusterSet)
+	selectorType := clusterSet.Spec.ClusterSelector.SelectorType
+
+	switch {
+	case selectorType == "":
+		selector = labels.SelectorFromSet(labels.Set{
+			clusterSetLabel: clusterSet.Name,
+		})
+
+		return clusterLister.List(selector)
+
+	case selectorType == clusterapiv1beta1.ClusterLabel:
+		selector = labels.SelectorFromSet(labels.Set{
+			clusterSet.Spec.ClusterSelector.ClusterLabel.Key: clusterSet.Spec.ClusterSelector.ClusterLabel.Value,
+		})
+
+		return clusterLister.List(selector)
+
+	default:
+		return clusters, fmt.Errorf("selectorType is not right: %s", clusterSet.Spec.ClusterSelector.SelectorType)
+	}
 }

@@ -44,10 +44,16 @@ type ManagedClusterSetSpec struct {
 type ManagedClusterSelector struct {
 	// "" means to use the current mechanism of matching label <cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>.
 	// "LabelSelector" means to use the LabelSelector to select target managedClusters
-	// "ClusterNames" means to use "ClusterNames" where the managedClusters Name is set
+	// "ClusterLabel" means to use a particular cluster label. It is guaranteed that clustersets with same label key are exclusive with each others
 	// +optional
 	SelectorType SelectorType `json:"selectorType"`
 
+	// ClusterLabel defines one label which clusterset could use to select target managedClusters. In this way, we will:
+	// 1. Guarantee clustersets with same label key are exclusive
+	// 2. Enable additional permission check when cluster joining/leaving a clusterset (the label key should start with the reserved prefix "cluster.open-cluster-management.io/" and "info.open-cluster-management.io/");
+	ClusterLabel *Label `json:"clusterLabel"`
+
+	// LabelSelector define the general labelSelector which clusterset will use to select target managedClusters
 	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
 }
 
@@ -55,7 +61,14 @@ type SelectorType string
 
 const (
 	LabelSelector SelectorType = "LabelSelector"
+	ClusterLabel  SelectorType = "ClusterLabel"
 )
+
+//Label defines one label
+type Label struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
 
 // ManagedClusterSetStatus represents the current status of the ManagedClusterSet.
 type ManagedClusterSetStatus struct {

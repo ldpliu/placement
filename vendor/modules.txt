@@ -934,7 +934,7 @@ k8s.io/utils/net
 k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# open-cluster-management.io/api v0.6.1-0.20220127035449-918b7bf7184f
+# open-cluster-management.io/api v0.6.1-0.20220127035449-918b7bf7184f => ../api
 ## explicit; go 1.17
 open-cluster-management.io/api/client/cluster/clientset/versioned
 open-cluster-management.io/api/client/cluster/clientset/versioned/fake
@@ -984,3 +984,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
+# open-cluster-management.io/api => ../api

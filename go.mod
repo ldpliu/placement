@@ -22,6 +22,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.8.3
 )
 
+replace open-cluster-management.io/api => ../api
+
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

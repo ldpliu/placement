@@ -36,9 +36,26 @@ type ManagedClusterSet struct {
 	Status ManagedClusterSetStatus `json:"status,omitempty"`
 }
 
-// ManagedClusterSetSpec describes the attributes of the ManagedClusterSet
 type ManagedClusterSetSpec struct {
+	// Selector represents a selector of ManagedClusters by labels and names.
+	ClusterSelector ManagedClusterSelector `json:"clusterSelector"`
 }
+
+type ManagedClusterSelector struct {
+	// "" means to use the current mechanism of matching label <cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>.
+	// "LabelSelector" means to use the LabelSelector to select target managedClusters
+	// "ClusterNames" means to use "ClusterNames" where the managedClusters Name is set
+	// +optional
+	SelectorType SelectorType `json:"selectorType"`
+
+	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
+}
+
+type SelectorType string
+
+const (
+	LabelSelector SelectorType = "LabelSelector"
+)
 
 // ManagedClusterSetStatus represents the current status of the ManagedClusterSet.
 type ManagedClusterSetStatus struct {

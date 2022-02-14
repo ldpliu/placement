@@ -43,7 +43,7 @@ const (
 	maxEventMessageLength          = 1000 //the event message can have at most 1024 characters, use 1000 as limitation here to keep some buffer
 )
 
-var ResyncInterval = time.Minute * 5
+var ResyncInterval = time.Second * 5
 
 type enqueuePlacementFunc func(namespace, name string)
 
@@ -193,12 +193,13 @@ func NewSchedulingControllerResync(
 func (c *schedulingController) resync(ctx context.Context, syncCtx factory.SyncContext) error {
 	queueKey := syncCtx.QueueKey()
 	klog.V(4).Infof("Resync placement %q", queueKey)
-
+	klog.Errorf("### new sync")
 	if queueKey == "key" {
 		placements, err := c.placementLister.List(labels.Everything())
 		if err != nil {
 			return err
 		}
+		klog.Errorf("### key")
 
 		for _, placement := range placements {
 			for _, config := range placement.Spec.PrioritizerPolicy.Configurations {
@@ -214,6 +215,8 @@ func (c *schedulingController) resync(ctx context.Context, syncCtx factory.SyncC
 		return nil
 	} else {
 		placement, err := c.getPlacement(queueKey)
+		klog.Errorf("### queueKey:%v", queueKey)
+
 		if errors.IsNotFound(err) {
 			// no work if placement is deleted
 			return nil
@@ -265,6 +268,8 @@ func (c *schedulingController) syncPlacement(ctx context.Context, placement *clu
 
 	// get all valid clustersetbindings in the placement namespace
 	bindings, err := c.getValidManagedClusterSetBindings(placement.Namespace)
+	klog.Errorf("### bindins:%v", len(bindings))
+
 	if err != nil {
 		return err
 	}

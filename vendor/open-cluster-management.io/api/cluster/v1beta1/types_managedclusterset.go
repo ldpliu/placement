@@ -24,6 +24,11 @@ import (
 // User is not allow to add/remove this label on a ManagedCluster unless they have a RBAC rule to CREATE on
 // a virtual subresource of managedclustersets/join. In order to update this label, user must have the permission
 // on both the old and new ManagedClusterSet.
+
+const (
+	ClusterSetLabel = "cluster.open-cluster-management.io/clusterset"
+)
+
 type ManagedClusterSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -47,18 +52,26 @@ type ManagedClusterSetSpec struct {
 
 // ManagedClusterSelector represents a selector of ManagedClusters
 type ManagedClusterSelector struct {
-	// SelectorType could only be "LegacyClusterSetLabel" now, will support more SelectorType later
+	// SelectorType could only be "LegacyClusterSetLabel" or "LabelSelector"
 	// "LegacyClusterSetLabel" means to use label "cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>"" to select target clusters.
-	// +kubebuilder:validation:Enum=LegacyClusterSetLabel
+	// "LabelSelector" means use labelSelector to select target managedClusters
+	// +kubebuilder:validation:Enum=LegacyClusterSetLabel;LabelSelector
 	// +kubebuilder:default:=LegacyClusterSetLabel
 	// +required
 	SelectorType SelectorType `json:"selectorType,omitempty"`
+
+	// LabelSelector define the general labelSelector which clusterset will use to select target managedClusters
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
 
 type SelectorType string
 
 const (
+	// "LegacyClusterSetLabel" means to use label "cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>"" to select target clusters.
 	LegacyClusterSetLabel SelectorType = "LegacyClusterSetLabel"
+	// "LabelSelector" means use labelSelector to select target managedClusters
+	LabelSelector SelectorType = "LabelSelector"
 )
 
 // ManagedClusterSetStatus represents the current status of the ManagedClusterSet.
